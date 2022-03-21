@@ -1,0 +1,23 @@
+#créer utilisateur avec connexion via certificat ssh
+- hosts: all
+  become: yes
+  tasks:
+    - name: Add the user 'inventory' and add it to sudo group
+      #ansible.builtin.user:
+      user:
+        name: inventory_user
+        comment: inventory_user_software
+        #group=groupe principal , groups= autre groupe
+        #group: inventory_user
+        groups: sudo
+        generate_ssh_key: yes
+        ssh_key_bits: 2048
+        ssh_key_file: .ssh/id_rsa
+        state: present
+
+
+
+
+
+
+
