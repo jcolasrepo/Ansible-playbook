@@ -1,0 +1,39 @@
+#fichier yaml afin d'installer le package snmpd et paramétrer la connexion pour un utilisateur en snmpv3
+- hosts: all
+  #droit sudo
+  become: yes
+  tasks:
+    - name: install packages
+      apt:
+        state: present
+        name:
+         - snmpd
+         - htop
+
+    - name: Replace users name 
+      lineinfile:
+        path: /etc/snmp/snmpd.conf
+        insertbefore: '^ rouser   authOnlyUser'
+        line: 'rouser snmpv3user'
+        firstmatch: yes
+        state: present
+
+    - name: Stop service snmpd pour écrire dans le fichier snmpd.conf
+      service:
+        name: snmpd
+        state: stopped
+
+    - name: creer les identifiants de connexion
+      lineinfile:
+        path: /var/lib/snmp/snmpd.conf
+        insertbefore: '^setserialno '
+        line: "test"
+        firstmatch: yes
+        state: present
+
+
+    - name: Start service snmpd,le fichier snmpd.conf sera hacher
+      service:
+        name: snmpd
+        state: started
+
