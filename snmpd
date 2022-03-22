@@ -1,6 +1,4 @@
-#fichier yaml afin d'installer le package snmpd et paramétrer la connexion pour un utilisateur en snmpv3
 - hosts: all
-  #droit sudo
   become: yes
   tasks:
     - name: install packages
@@ -10,30 +8,61 @@
          - snmpd
          - htop
 
-    - name: Replace users name 
+    - name: add users name
       lineinfile:
         path: /etc/snmp/snmpd.conf
         insertbefore: '^ rouser   authOnlyUser'
-        line: 'rouser snmpv3user'
+        line: 'rouser centreon'
         firstmatch: yes
         state: present
 
-    - name: Stop service snmpd pour écrire dans le fichier snmpd.conf
-      service:
-        name: snmpd
-        state: stopped
+    - name: Check si snmpd.conf contient un utilisateur
+      lineinfile:
+        path: /var/lib/snmp/snmpd.conf
+        state: absent
+        regexp: '^.*users.*$'
+      check_mode: yes
+      changed_when: false
+      register: out
+
+    - debug:
+        msg: "Yes, line exists."
+      when: out.found
+
+    - debug:
+        msg: "Line does NOT exist."
+      when: not out.found
 
     - name: creer les identifiants de connexion
       lineinfile:
         path: /var/lib/snmp/snmpd.conf
         insertbefore: '^setserialno '
-        line: "test"
+        line: "createUser centreon SHA MonMot2Passe!! AES !!MaPhrase2PasseAES"
         firstmatch: yes
-        state: present
+      when: not out.found
+      register: changement
 
+
+#désactive snmpV1 & V2
+
+    #- name: cherche les lignes rocommunity rocommunity6 
+    - replace:
+        path: /etc/snmp/snmpd.conf
+        regexp: '^(.*)rocommunity(.*)$'
+        replace: '#rocommunity'
+        backup: yes
+      register: rocommunity
+
+    #- name: cherche les lignes rwcommunity rwcommunity6
+    - replace:
+        path: /etc/snmp/snmpd.conf
+        regexp: '^(.*)rwcommunity(.*)$'
+        replace: '#rwcommunity'
+        backup: yes
+      register: rwcommunity
 
     - name: Start service snmpd,le fichier snmpd.conf sera hacher
       service:
         name: snmpd
-        state: started
-
+        state: restarted
+      when: ( changement.changed ) or (rocommunity.changed  ) or (rwcommunity.changed )
