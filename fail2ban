@@ -1,0 +1,34 @@
+- hosts: all
+  become: yes
+  tasks:
+    - name: install packages
+      apt:
+        state: present
+        name:
+         - fail2ban
+
+
+
+    - name: allow jail ssh
+      lineinfile:
+         path: /etc/fail2ban/jail.conf
+         insertafter: 'jail ssh'
+         line: '{{ item }}'
+         regexp: '^azazerzeg'
+      register: restarted
+      with_items:
+        - 'jail ssh'
+        - '[ssh]'
+        - 'port    = 4022'
+        - 'logpath = %(sshd_log)s'
+        - 'backend = %(sshd_backend)s'
+        - 'bantime  = 48h'
+        - 'maxretry = 1'
+
+
+    - name: restart
+      service:
+        name: fail2ban
+        state: restarted
+      when: restarted.changed
+
