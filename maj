@@ -1,15 +1,7 @@
-- hosts: all
+- hosts: 192.168.1.16
   become: yes
   tasks:
-    - name: install packages
+    - name: update et upgrade l'os
       apt:
-        state: present
-        name:
-         - update
-         
-         
-    - name: install packages
-      apt:
-        state: present
-        name:
-         - upgrade
+        upgrade: dist
+        update_cache: yes
