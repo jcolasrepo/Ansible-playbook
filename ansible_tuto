@@ -1,0 +1,31 @@
+
+installation Ansible:
+
+apt install ansible 
+
+voir la version de ansible:
+
+ansible --version 
+
+
+modifier la configuration:
+nano /etc/ansible/ansible.cfg
+  remote_port    = 4022
+  remote_user = ansible
+  private_key_file = /etc/ansible/privkey
+  
+  crée une paire de clef pour l'utilisateur ansible pour les machines client
+  ssh-keygen -t rsa
+  ssh-copy-id -i ~/.ssh/id_rsa.pub ansible@192.168.100.118
+
+tester la configuration:
+sudo ansible -i ~/.hosts -m ping all
+
+ajouter une machine à l'inventaire:
+nano /etc/ansible/hosts
+[webservers]
+192.168.1.16
+
+[reverse-proxy]
+10.110.10.100
+
