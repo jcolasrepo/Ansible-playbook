@@ -20,7 +20,7 @@
     - name: creer les plugins
       lineinfile:
         path: /etc/nagios/nrpe.cfg
-        insertafter: '^allowed_hosts '
+        insertafter: '^ example of commands '
         line: "command[check_cert]="
         firstmatch: yes
       when: not out.found
