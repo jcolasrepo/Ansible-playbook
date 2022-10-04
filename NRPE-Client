@@ -7,20 +7,39 @@
          - nagios-nrpe-server 
          - nagios-plugins
       state: latest
-
-    - name: allowed_host
+        
+    - name: creer les identifiants de connexion
       lineinfile:
-        path: /etc/snmp/snmpd.conf
-        insertbefore: '^ rouser   authOnlyUser'
-        line: 'rouser centreon'
+        path: /etc/nagios/nrpe.cfg
+        regexp::'^(.*) allowed_hosts=127.0.0.1,(.*)$' 
+        line: ' allowed_hosts=127.0.0.1, 192.168.1.100'
         firstmatch: yes
-        state: present
+      when: not out.found
+      register: changement
+      
+    - name: creer les plugins
+      lineinfile:
+        path: /etc/nagios/nrpe.cfg
+        insertafter: '^allowed_hosts '
+        line: "command[check_cert]="
+        firstmatch: yes
+      when: not out.found
+      register: changement
         
-#- name: cherche les lignes rocommunity rocommunity6 
-    - replace:
-        path: /etc/nagios/nrpe.cfg 
-        regexp: '^(.*)allowed_hosts=127.0.0.1,(.*)$'
-        replace: 'allowed_hosts=127.0.0.1,192.168.1.100'
-        backup: yes
-      register: rocommunity
-        
+ name: Start service nagios-nrpe,
+      service:
+        name: nagios-nrpe-server
+        state: start
+      when: ( changement.changed ) or (nagios.cfg.changed  )
+      
+ name: Retart service nagios-nrpe,
+      service:
+        name: nagios-nrpe-server
+        state: restart
+      when: ( changement.changed ) or (nagios.cfg.changed  )
+
+ name: status service nagios-nrpe,
+      service:
+        name: nagios-nrpe-server
+        state: status
+      
