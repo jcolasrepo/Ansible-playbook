@@ -43,3 +43,10 @@
         name: nagios-nrpe-server
         state: status
       
+     - name: Creating a file with content
+      copy:
+        dest: "/ur/lib/nagios/plugin"
+        content: |
+          line 01
+          line 02     
+        
