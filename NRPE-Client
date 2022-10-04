@@ -1,0 +1,26 @@
+- hosts: linux
+  become: yes
+  tasks:
+    - name: install packages
+        state: present
+        name:
+         - nagios-nrpe-server 
+         - nagios-plugins
+      state: latest
+
+    - name: allowed_host
+      lineinfile:
+        path: /etc/snmp/snmpd.conf
+        insertbefore: '^ rouser   authOnlyUser'
+        line: 'rouser centreon'
+        firstmatch: yes
+        state: present
+        
+#- name: cherche les lignes rocommunity rocommunity6 
+    - replace:
+        path: /etc/nagios/nrpe.cfg 
+        regexp: '^(.*)allowed_hosts=127.0.0.1,(.*)$'
+        replace: 'allowed_hosts=127.0.0.1,192.168.1.100'
+        backup: yes
+      register: rocommunity
+        
