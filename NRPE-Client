@@ -2,11 +2,11 @@
   become: yes
   tasks:
     - name: install packages
-        state: present
-        name:
-         - nagios-nrpe-server 
-         - nagios-plugins
-      state: latest
+          apt:
+            state: present
+            name:
+             - nagios-nrpe-server 
+             - nagios-plugins
         
     - name: creer les identifiants de connexion
       lineinfile:
