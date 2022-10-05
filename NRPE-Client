@@ -1,52 +1,56 @@
-- hosts: linux
+- hosts: controller
   become: yes
   tasks:
     - name: install packages
-          apt:
-            state: present
-            name:
-             - nagios-nrpe-server 
-             - nagios-plugins
-        
+      apt:
+        state: present
+        name:
+         - nagios-nrpe-server
+         - nagios-plugins
+
     - name: creer les identifiants de connexion
       lineinfile:
         path: /etc/nagios/nrpe.cfg
-        regexp::'^(.*) allowed_hosts=127.0.0.1,(.*)$' 
-        line: ' allowed_hosts=127.0.0.1, 192.168.1.100'
+        regexp: '^(.*) allowed_hosts=127.0.0.1,(.*)$'
+        line: 'allowed_hosts=127.0.0.1, 192.168.1.100'
         firstmatch: yes
-      when: not out.found
-      register: changement
-      
+        state: present
+      register: allowed
+
     - name: creer les plugins
       lineinfile:
         path: /etc/nagios/nrpe.cfg
         insertafter: '^ example of commands '
-        line: "command[check_cert]="
+        line: "command[check_isfile]=/usr/lib/nagios/plugins/check_isfile"
         firstmatch: yes
-      when: not out.found
-      register: changement
-        
- name: Start service nagios-nrpe,
-      service:
-        name: nagios-nrpe-server
-        state: start
-      when: ( changement.changed ) or (nagios.cfg.changed  )
-      
- name: Retart service nagios-nrpe,
-      service:
-        name: nagios-nrpe-server
-        state: restart
-      when: ( changement.changed ) or (nagios.cfg.changed  )
+      register: plugins
 
- name: status service nagios-nrpe,
+    - name: Start service snmpd,le fichier snmpd.conf sera hacher
       service:
         name: nagios-nrpe-server
-        state: status
-      
-     - name: Creating a file with content
+        state: started
+      when: ( allowed.changed ) or (plugins.changed  )
+
+
+    - name: Start service snmpd,le fichier snmpd.conf sera hacher
+      service:
+        name: nagios-nrpe-server
+        state: reloaded
+      when: ( allowed.changed ) or (plugins.changed  )
+
+    - name: Creating a file with content
       copy:
-        dest: "/ur/lib/nagios/plugin"
+        dest: "/usr/lib/nagios/plugins/check_isfile"
         content: |
-          line 01
-          line 02     
-        
+          #!/bin/bash
+          #file='cat /var/run/reboot-required'
+          if cat /var/run/reboot-required | grep -q 'restart' || cat /var/run/reboot-required | grep -q 'système'; then
+          echo "CRITICAL - reboot  needed"
+          exit 1
+          else
+          echo "OK - Reboot not Needed"
+          exit 0
+          fi
+
+    - name: Changing perm
+      file: dest=/usr/lib/nagios/plugins/check_isfile mode=a+x
