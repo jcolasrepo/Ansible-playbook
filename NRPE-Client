@@ -25,14 +25,14 @@
         firstmatch: yes
       register: plugins
 
-    - name: Start service snmpd,le fichier snmpd.conf sera hacher
+    - name: Start le service nagios-nrpe
       service:
         name: nagios-nrpe-server
         state: started
       when: ( allowed.changed ) or (plugins.changed  )
 
 
-    - name: Start service snmpd,le fichier snmpd.conf sera hacher
+    - name: Restart service nagios-nrpe
       service:
         name: nagios-nrpe-server
         state: reloaded
