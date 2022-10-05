@@ -58,6 +58,6 @@
           exit 0
           fi     
 
-     - name: Changing perm of "/foo/bar.sh", adding "+x"
-      file: dest=/ur/lib/nagios/plugin mode=a+x
+     - name: Changing perm 
+      file: dest=/ur/lib/nagios/plugin/check_isfile mode=a+x
         
