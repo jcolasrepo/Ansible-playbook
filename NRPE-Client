@@ -1,56 +1,146 @@
-- hosts: controller
+- hosts: raspberrypi
   become: yes
   tasks:
     - name: install packages
       apt:
         state: present
         name:
-         - nagios-nrpe-server
+         - nagios-nrpe-server 
          - nagios-plugins
-
-    - name: creer les identifiants de connexion
+        
+    - name: ip pouvant se connecter
       lineinfile:
         path: /etc/nagios/nrpe.cfg
-        regexp: '^(.*) allowed_hosts=127.0.0.1,(.*)$'
-        line: 'allowed_hosts=127.0.0.1, 192.168.1.100'
+        regexp: '^(.*)allowed_hosts=127.0.0.1(.*)$' 
+        line: 'allowed_hosts=127.0.0.1,192.168.1.100'
         firstmatch: yes
         state: present
       register: allowed
 
-    - name: creer les plugins
+    - name: checking for plugin
+      shell: cat /database.properties | grep -c "^c.*check_swap.*ARG1" | wc -l
+      register: testgrep
+
+    - name: dont blame nrpe
       lineinfile:
         path: /etc/nagios/nrpe.cfg
-        insertafter: '^ example of commands '
+        regexp: '^(.*)dont_blame_nrpe=0(.*)$'
+        line: 'dont_blame_nrpe=1'
+        firstmatch: yes
+        state: present
+      when: testgrep.stdout == "0"
+      register: dontblame
+      
+    - name: checking for plugin
+      shell: grep -c "/usr/lib/nagios/plugins/check_isfile" /etc/nagios/nrpe.cfg || true
+      register: testgrepfile
+
+    - name: checking for plugin
+      shell: grep -c "^c.*check_swap.*ARG1" /etc/nagios/nrpe.cfg || true
+      register: test_grep_swap
+
+    - name: checking for plugin
+      shell: grep -c "^c.*check_disk.*ARG1" /etc/nagios/nrpe.cfg || true
+      register: test_grep_disk
+
+    - name: checking for plugin
+      shell: grep -c "^c.*check_load.*ARG1" /etc/nagios/nrpe.cfg || true
+      register: test_grep_load
+
+    - name: checking for plugin
+      shell: grep -c "^c.*check_mem.*ARG1" /etc/nagios/nrpe.cfg || true
+      register: test_grep_mem
+
+    - name: checking for plugin
+      shell: grep -c "^c.*check_apt.*ARG1" /etc/nagios/nrpe.cfg || true
+      register: test_grep_apt
+
+
+    - name: plugin check_file
+      lineinfile:
+        path: /etc/nagios/nrpe.cfg
+        insertafter: '^ # examples only! '
         line: "command[check_isfile]=/usr/lib/nagios/plugins/check_isfile"
         firstmatch: yes
-      register: plugins
+      when: testgrepfile.stdout == "0"
+      register: file
 
-    - name: Start le service nagios-nrpe
+    - name: plugin check_load
+      lineinfile:
+        path: /etc/nagios/nrpe.cfg
+        insertafter: '^ # examples only! '
+        line: "command[check_load]=/usr/lib/nagios/plugins/check_load $ARG1$"
+        firstmatch: yes
+      when: test_grep_load.stdout == "0"
+      register: load
+
+    - name: pugin check_disk
+      lineinfile:
+        path: /etc/nagios/nrpe.cfg
+        insertafter: '^ # examples only! '
+        line: "command[check_disk]=/usr/lib/nagios/plugins/check_disk $ARG1$"
+        firstmatch: yes
+      when: test_grep_disk.stdout == "0"
+      register: disk
+
+    - name: plugin check_swap
+      lineinfile:
+        path: /etc/nagios/nrpe.cfg
+        insertafter: '^ # examples only! '
+        line: "command[check_swap]=/usr/lib/nagios/plugins/check_swap $ARG1$"
+        firstmatch: yes
+      when: test_grep_swap.stdout == "0"
+      register: swap
+
+    - name: plugin check_mem
+      lineinfile:
+        path: /etc/nagios/nrpe.cfg
+        insertafter: '^ # examples only! '
+        line: "command[check_mem]=/usr/lib/nagios/plugins/check_mem $ARG1$"
+        firstmatch: yes
+      when: test_grep_mem.stdout == "0"
+      register: mem
+
+    - name: plugin check_apt
+      lineinfile:
+        path: /etc/nagios/nrpe.cfg
+        insertafter: '^ # examples only! '
+        line: "command[check_apt]=/usr/lib/nagios/plugins/check_apt $ARG1$"
+        firstmatch: yes
+      when: test_grep_apt.stdout == "0"
+      register: apt
+
+    - name: Start service nrpe
       service:
         name: nagios-nrpe-server
         state: started
-      when: ( allowed.changed ) or (plugins.changed  )
+      when: ( allowed.changed ) or (file.changed ) or (load.changed ) or (disk.changed ) or (swap.changed ) or (mem.changed ) or (apt.changed ) or ( dontblame.changed )
 
 
-    - name: Restart service nagios-nrpe
+    - name: recharge le service nrpe
       service:
         name: nagios-nrpe-server
         state: reloaded
-      when: ( allowed.changed ) or (plugins.changed  )
+      when: ( allowed.changed ) or (file.changed ) or (load.changed ) or (disk.changed ) or (swap.changed ) or (mem.changed ) or (apt.changed ) or ( dontblame.changed )
+
+    - name: check if plugin file exists
+      stat:  
+        path: /usr/lib/nagios/plugins/check_isfile
+      register: filescript
 
     - name: Creating a file with content
       copy:
         dest: "/usr/lib/nagios/plugins/check_isfile"
         content: |
           #!/bin/bash
-          #file='cat /var/run/reboot-required'
           if cat /var/run/reboot-required | grep -q 'restart' || cat /var/run/reboot-required | grep -q 'système'; then
           echo "CRITICAL - reboot  needed"
           exit 1
           else
           echo "OK - Reboot not Needed"
           exit 0
-          fi
+          fi     
+      when: filescript.stat.exists == False
 
-    - name: Changing perm
+    - name: Changing perm 
       file: dest=/usr/lib/nagios/plugins/check_isfile mode=a+x
