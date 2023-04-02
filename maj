@@ -1,7 +1,7 @@
-- hosts: 192.168.1.16
+- hosts: raspberrypi
   become: yes
   tasks:
     - name: update et upgrade l'os
       apt:
+        update_cache: yes         
         upgrade: dist
-        update_cache: yes
