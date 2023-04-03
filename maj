@@ -5,3 +5,12 @@
       apt:
         update_cache: yes         
         upgrade: dist
+        
+- name: check si un redémarrage est requis
+  stat:
+    path: /var/run/reboot-required
+  register: reboot
+
+- name: Redémarre
+  reboot:
+  when: reboot.stat.exists == true
