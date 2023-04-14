@@ -1,11 +1,18 @@
 #!/bin/bash
 
-$ipadress=""
-for adress in ipadress :
-#scp /home/pi/touch.txt root@192.168.1.15:/root/touch.txt
-sshpass -p "root" scp -P 4022 /root/touch.txt root@192.168.1.15:/home/colas/touch.txt
+ipadd=(
+    192.168.1.15
+    192.168.1.16
+)
+for add in "${ipadd[@]}"; do
+
+#copy file
+#scp /home/pi/touch.txt root@$add:/root/touch.txt
+sshpass -p "root" scp -P 4022 /root/touch.txt root@$add:/home/colas/touch.txt
 
 #Lancer les commandes sur la machines distante
-sshpass -p 'root' ssh root@192.168.1.15 -p 4022 "echo password | sudo -S ls -lh /var/log/auth.log; ls -lh /var/log/auth.log.1"
+sshpass -p 'root' ssh root@$add -p 4022 "echo password | sudo -S ls -lh /var/log/auth.log; ls -lh /var/log/auth.log.1"
 #askpassword
-ssh admin@192.168.1.15 -p 4022 "echo adminpasswd | sudo -S ls -lh /var/log/auth.log; ls -lh /var/log/auth.log.1"
+ssh admin@$add -p 4022 "echo adminpasswd | sudo -S ls -lh /var/log/auth.log; ls -lh /var/log/auth.log.1"
+
+done
