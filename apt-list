@@ -1,0 +1,22 @@
+- hosts: raspberrypi
+  become: yes
+  tasks:
+    - name: Récupère le nombre de mise à jour à installer
+      shell: 'apt list --upgradable | wc -l'
+      register: apt
+
+    - name: Récupère le nombre de mise à jour qui n'ont pas été installer
+      shell: 'apt list --upgradable | wc -l'
+      register: aptnew
+      when: (apt.stdout | int) > 1
+
+    - name: récupère le nom de la vm
+      shell: 'hostname'
+      register: hostname
+      when: (apt.stdout | int) > 1
+
+    - name: calcul le nombre de maj installer
+      debug:
+        msg:
+         - "Serveur{{hostname.stdout }},{{(apt.stdout | int)-1}} doivent être mis à jour, {{(aptnew.stdout | int)-1}} n'ont pas été mis à jour, total de mise à jour installer {{(apt.stdout | int)-(aptnew.stdout | int)}}"
+      when: (apt.stdout | int) > 1
