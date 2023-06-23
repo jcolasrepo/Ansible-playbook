@@ -5,6 +5,12 @@
       shell: 'apt list --upgradable | wc -l'
       register: apt
 
+   - name: update et upgrade l'os
+     apt:
+       update_cache: yes
+       upgrade: dist
+     when: (apt.stdout | int) > 1
+
     - name: Récupère le nombre de mise à jour qui n'ont pas été installer
       shell: 'apt list --upgradable | wc -l'
       register: aptnew
