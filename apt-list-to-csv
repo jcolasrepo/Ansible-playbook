@@ -1,0 +1,64 @@
+- hosts: raspberrypi
+  become: yes
+  gather_facts: yes
+  vars:
+    output_path: "./reports/"
+    filename: "device_report_{{ date }}.csv"
+
+  tasks:
+  - name: Récupère le nombre de mise à jour à installer
+    shell: 'apt list --upgradable | wc -l'
+    register: apt
+
+  - name: update et upgrade l'os
+    apt:
+      update_cache: yes
+      upgrade: dist
+    when: (apt.stdout | int) > 1
+
+  - name: Récupère le nombre de mise à jour qui n'ont pas été installer
+    shell: 'apt list --upgradable | wc -l'
+    register: aptnew
+    when: (apt.stdout | int) > 1
+
+  - name: récupère le nom de la vm
+    shell: 'hostname'
+    register: hostname
+    when: (apt.stdout | int) > 1
+
+  - name: calcul le nombre de maj installer
+    debug:
+      msg:
+       - "Serveur{{hostname.stdout }},{{(apt.stdout | int)-1}} doivent être mis à jour, {{(aptnew.stdout | int)-1}} n'ont pas été mis à jour, total de mise à jour installer {{(apt.stdout | int)-(aptnew.std$
+    when: (apt.stdout | int) > 1
+
+  - name: CSV - Generate output filename
+    set_fact: date="{{lookup('pipe','date +%Y%m%d')}}"
+    run_once: true
+    delegate_to: localhost
+    when: (apt.stdout | int) > 1
+
+  - name: CSV - créer le fichier et ajoute un entete
+    lineinfile:
+      dest: "{{ output_path }}/{{ filename }}"
+      line:
+        hostname,MAJInstalled,MAJNotInstalled
+      create: yes
+      state: present
+    delegate_to: localhost
+    when: (apt.stdout | int) > 1
+ - name: CSV - Write information into .csv file
+    lineinfile:
+      insertafter: EOF
+      dest: "{{ output_path }}/{{ filename }}"
+      line: "{{ csv_tmp }}"
+    delegate_to: localhost
+    when: (apt.stdout | int) > 1
+
+  - name: CSV - Blank lines removal
+    lineinfile:
+      path: "./{{ output_path }}/{{ filename }}"
+      state: absent
+      regex: '^\s*$'
+    delegate_to: localhost
+    when: (apt.stdout | int) > 1
