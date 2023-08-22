@@ -29,7 +29,7 @@
   - name: calcul le nombre de maj installer
     debug:
       msg:
-       - "Serveur{{hostname.stdout }},{{(apt.stdout | int)-1}} doivent être mis à jour, {{(aptnew.stdout | int)-1}} n'ont pas été mis à jour, total de mise à jour installer {{(apt.stdout | int)-(aptnew.std$
+       - "Serveur{{hostname.stdout }},{{(apt.stdout | int)-1}} doivent être mis à jour, {{(aptnew.stdout | int)-1}} n'ont pas été mis à jour, total de mise à jour installer {{(apt.stdout | int)-(aptnew.stdout | int)}}"
     when: (apt.stdout | int) > 1
 
   - name: CSV - Generate output filename
@@ -47,7 +47,15 @@
       state: present
     delegate_to: localhost
     when: (apt.stdout | int) > 1
- - name: CSV - Write information into .csv file
+
+  - name: CSV - ajoute les info dans un fichier temporaire
+    set_fact:
+      csv_tmp: >
+        {{ hostname.stdout }},{{ apt.stdout }},{{ aptnew.stdout }}
+    delegate_to: localhost
+    when: (apt.stdout | int) > 1
+
+  - name: CSV - Write information into .csv file
     lineinfile:
       insertafter: EOF
       dest: "{{ output_path }}/{{ filename }}"
@@ -62,3 +70,4 @@
       regex: '^\s*$'
     delegate_to: localhost
     when: (apt.stdout | int) > 1
+
